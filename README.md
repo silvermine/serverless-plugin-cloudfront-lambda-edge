@@ -12,6 +12,38 @@ This is a plugin for the Serverless framework that adds support for associating 
 function with a CloudFront distribution to take advantage of the new Lambda@Edge features
 of CloudFront.
 
+Unfortunately CloudFormation does not currently support Lambda@Edge. I have opened a
+[ticket with them](https://forums.aws.amazon.com/thread.jspa?threadID=262327) and hope
+they will eventually add support for it. Once they do, then the Serverless team can also
+add support for it ([issue here](https://github.com/serverless/serverless/issues/3944)).
+
+A CloudFormation custom resource would not work well for this type of work because:
+
+   1. The default policy that Serverless creates for Lambda functions won't work because
+      when AWS replicates a function to be used for Lambda@Edge, it assigns it to
+      different log group names than a typical Lambda function. Thus, the default policy
+      needed to be updated before being submitted to CloudFormation
+      * See https://github.com/silvermine/serverless-plugin-cloudfront-lambda-edge/blob/3605ad93766ce60014206b35b0bd1d44ee4f3427/src/index.js#L87-L105
+   2. Similarly, the AssumeRolePolicy on the role that Serverless creates for the Lambda
+      to execute in needs the principal `edgelambda.amazonaws.com` added (it has just
+      `lambda.amazonaws.com`).
+      * See https://github.com/silvermine/serverless-plugin-cloudfront-lambda-edge/blob/3605ad93766ce60014206b35b0bd1d44ee4f3427/src/index.js#L77-L85
+   3. Also, the CloudFront distribution is managed by CloudFormation, and then for us to
+      add our Lambda@Edge functions to it requires a second update. A custom resource
+      can't take on management of a resource that's already managed within the stack, and
+      we don't want to build a custom resource that has to entirely manage the CloudFront
+      distribution.
+
+Thus, the plugin will make the first two modifications to the CloudFormation template
+before Serverless writes it. It will also remove any environment variables from the Lambda
+function's CloudFormation resource because they are not supported by Lambda@Edge (it only
+does this on functions that will be associated with a CloudFront distribution). Then after
+the deploy is done, it will check to see if an update is needed to the CloudFront
+distribution, and if so, will update it to reference the latest versions of the Lambda
+function. Unfortunately this means that at times your CloudFront distribution will be
+updated twice in a row - and CloudFront distributions are extremely slow to update
+(approximately 15 minutes for each update). What can you do 🤷?
+
 
 ## How do I use it?
 
