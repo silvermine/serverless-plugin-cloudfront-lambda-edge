@@ -1,0 +1,15 @@
+language: node_js
+node_js:
+  - "6.10.3"
+  - "5"
+  - "4.3.2"
+
+before_install: if [[ `npm -v` != 3* ]]; then npm i -g npm@3; fi
+
+script:
+   - grunt standards
+   - npm test
+
+# For code coverage:
+after_success:
+   cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
