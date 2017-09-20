@@ -50,10 +50,10 @@ module.exports = Class.extend({
          */
 
       this._serverless.cli.log(
-            'Checking to see if ' + cnt +
-            (cnt > 1 ? ' functions need ' : ' function needs ') +
-            'to be associated to CloudFront'
-        );
+         'Checking to see if ' + cnt +
+         (cnt > 1 ? ' functions need ' : ' function needs ') +
+         'to be associated to CloudFront'
+      );
 
       return Q.all([ this._getFunctionsToAssociate(), this._getDistributionPhysicalIDs() ])
          .spread(this._updateDistributionsAsNecessary.bind(this));
@@ -114,39 +114,39 @@ module.exports = Class.extend({
       var self = this;
 
       this._pendingAssociations = _.chain(functions)
-            .reduce(function(memo, fnDef, fnName) {
-               if (!fnDef.lambdaAtEdge) {
-                  return memo;
-               }
-
-               if (fnDef.lambdaAtEdge.constructor === Array) {
-                  _.each(fnDef.lambdaAtEdge, function(lambdaAtEdge) {
-                     self._addLambdaAtEdge(lambdaAtEdge, template, memo, self, fnName);
-                  });
-               } else {
-                  self._addLambdaAtEdge(fnDef.lambdaAtEdge, template, memo, self, fnName);
-               }
+         .reduce(function(memo, fnDef, fnName) {
+            if (!fnDef.lambdaAtEdge) {
                return memo;
-            }, [])
-            .each(function(fn) {
-               var fnProps = template.Resources[fn.fnLogicalName].Properties;
+            }
 
-               if (fnProps && fnProps.Environment && fnProps.Environment.Variables) {
-                  self._serverless.cli.log(
-                        'Removing ' +
-                        _.size(fnProps.Environment.Variables) +
-                        ' environment variables from function "' +
-                        fn.fnLogicalName +
-                        '" because Lambda@Edge does not support environment variables'
-                    );
+            if (fnDef.lambdaAtEdge.constructor === Array) {
+               _.each(fnDef.lambdaAtEdge, function(lambdaAtEdge) {
+                  self._addLambdaAtEdge(lambdaAtEdge, template, memo, self, fnName);
+               });
+            } else {
+               self._addLambdaAtEdge(fnDef.lambdaAtEdge, template, memo, self, fnName);
+            }
+            return memo;
+         }, [])
+         .each(function(fn) {
+            var fnProps = template.Resources[fn.fnLogicalName].Properties;
 
-                  delete fnProps.Environment.Variables;
+            if (fnProps && fnProps.Environment && fnProps.Environment.Variables) {
+               self._serverless.cli.log(
+                  'Removing ' +
+                  _.size(fnProps.Environment.Variables) +
+                  ' environment variables from function "' +
+                  fn.fnLogicalName +
+                  '" because Lambda@Edge does not support environment variables'
+               );
 
-                  if (_.isEmpty(fnProps.Environment)) {
-                     delete fnProps.Environment;
-                  }
+               delete fnProps.Environment.Variables;
+
+               if (_.isEmpty(fnProps.Environment)) {
+                  delete fnProps.Environment;
                }
-            })
+            }
+         })
          .value();
    },
 
@@ -173,52 +173,42 @@ module.exports = Class.extend({
 
       setTimeout(dotPrinter, 1000);
 
-      return Q.ninvoke(cloudfront, 'waitFor', 'distributionDeployed', {
-         Id: distPhysicalID,
-      })
-            .then(function(resp) {
-               running = false;
-               if (!firstDot) {
-                    // we have printed a dot, so clear the line
-                  this._serverless.cli.consoleLog('');
-               }
-               this._serverless.cli.log('Distribution "' + distLogicalName + '" is now in "' + resp.Distribution.Status + '" state');
-            }.bind(this));
+      return Q.ninvoke(cloudfront, 'waitFor', 'distributionDeployed', { Id: distPhysicalID })
+         .then(function(resp) {
+            running = false;
+            if (!firstDot) {
+                 // we have printed a dot, so clear the line
+               this._serverless.cli.consoleLog('');
+            }
+            this._serverless.cli.log('Distribution "' + distLogicalName + '" is now in "' + resp.Distribution.Status + '" state');
+         }.bind(this));
    },
 
    _updateDistributionAsNecessary: function(fns, distID, distName) {
       var self = this;
 
-      return this._waitForDistributionDeployed(distID, distName)
-            .then(function() {
-               return self._provider.request('CloudFront', 'getDistribution', {
-                  Id: distID,
-               });
-            })
-            .then(function(resp) {
-               var config = resp.Distribution.DistributionConfig,
-                   changed = self._modifyDistributionConfigIfNeeded(config, fns[distName]),
-                   updateParams = {
-                      Id: distID,
-                      DistributionConfig: config,
-                      IfMatch: resp.ETag,
-                   };
+      return this._waitForDistributionDeployed(distID, distName).then(function() {
+         return self._provider.request('CloudFront', 'getDistribution', { Id: distID });
+      })
+         .then(function(resp) {
+            var config = resp.Distribution.DistributionConfig,
+                changed = self._modifyDistributionConfigIfNeeded(config, fns[distName]),
+                updateParams = { Id: distID, DistributionConfig: config, IfMatch: resp.ETag };
 
-               if (changed) {
-                  self._serverless.cli.log('Updating distribution "' + distName + '" because we updated Lambda@Edge associations on it');
-                  return self._provider.request('CloudFront', 'updateDistribution', updateParams)
-                        .then(function() {
-                           return self._waitForDistributionDeployed(distID, distName);
-                        })
-                        .then(function() {
-                           self._serverless.cli.log('Done updating distribution "' + distName + '"');
-                        });
-               }
+            if (changed) {
+               self._serverless.cli.log('Updating distribution "' + distName + '" because we updated Lambda@Edge associations on it');
+               return self._provider.request('CloudFront', 'updateDistribution', updateParams).then(function() {
+                  return self._waitForDistributionDeployed(distID, distName);
+               })
+                  .then(function() {
+                     self._serverless.cli.log('Done updating distribution "' + distName + '"');
+                  });
+            }
 
-               self._serverless.cli.log(
-                    'The distribution is already configured with the current versions of each Lambda@Edge function it needs'
-                );
-            });
+            self._serverless.cli.log(
+               'The distribution is already configured with the current versions of each Lambda@Edge function it needs'
+            );
+         });
    },
 
    _modifyDistributionConfigIfNeeded: function(distConfig, fns) {
@@ -237,9 +227,7 @@ module.exports = Class.extend({
       var changed = false;
 
       _.each(fns, function(fn) {
-         var existing = _.findWhere(beh.LambdaFunctionAssociations.Items, {
-            EventType: fn.eventType,
-         });
+         var existing = _.findWhere(beh.LambdaFunctionAssociations.Items, { EventType: fn.eventType });
 
          if (!existing) {
             this._serverless.cli.log('Adding new Lamba@Edge association for ' + fn.eventType + ': ' + fn.fnARN);
@@ -268,37 +256,33 @@ module.exports = Class.extend({
       return this._provider.request('CloudFormation', 'describeStacks', {
          StackName: stackName,
       })
-            .then(function(resp) {
-               var stack = _.findWhere(resp.Stacks, {
-                  StackName: stackName,
-               });
+         .then(function(resp) {
+            var stack = _.findWhere(resp.Stacks, { StackName: stackName });
 
-               if (!stack) {
-                  throw new Error('CloudFormation did not return a stack with name "' + stackName + '"');
+            if (!stack) {
+               throw new Error('CloudFormation did not return a stack with name "' + stackName + '"');
+            }
+
+            return _.reduce(this._pendingAssociations, function(memo, pending) {
+               var outputName = pending.fnCurrentVersionOutputName,
+                   output = _.findWhere(stack.Outputs, { OutputKey: outputName });
+
+               if (!output) {
+                  throw new Error('Stack "' + stackName + '" did not have an output with name "' + outputName + '"');
                }
 
-               return _.reduce(this._pendingAssociations, function(memo, pending) {
-                  var outputName = pending.fnCurrentVersionOutputName,
-                      output = _.findWhere(stack.Outputs, {
-                         OutputKey: outputName,
-                      });
+               if (!memo[pending.distLogicalName]) {
+                  memo[pending.distLogicalName] = [];
+               }
 
-                  if (!output) {
-                     throw new Error('Stack "' + stackName + '" did not have an output with name "' + outputName + '"');
-                  }
+               memo[pending.distLogicalName].push({
+                  eventType: pending.eventType,
+                  fnARN: output.OutputValue,
+               });
 
-                  if (!memo[pending.distLogicalName]) {
-                     memo[pending.distLogicalName] = [];
-                  }
-
-                  memo[pending.distLogicalName].push({
-                     eventType: pending.eventType,
-                     fnARN: output.OutputValue,
-                  });
-
-                  return memo;
-               }, {});
-            }.bind(this));
+               return memo;
+            }, {});
+         }.bind(this));
    },
 
    _getDistributionPhysicalIDs: function() {
@@ -307,22 +291,20 @@ module.exports = Class.extend({
       return this._provider.request('CloudFormation', 'describeStackResources', {
          StackName: stackName,
       })
-            .then(function(resp) {
-               return _.reduce(this._pendingAssociations, function(memo, pending) {
-                  var resource = _.findWhere(resp.StackResources, {
-                     LogicalResourceId: pending.distLogicalName,
-                  });
+         .then(function(resp) {
+            return _.reduce(this._pendingAssociations, function(memo, pending) {
+               var resource = _.findWhere(resp.StackResources, { LogicalResourceId: pending.distLogicalName });
 
-                  if (!resource) {
-                     throw new Error('Stack "' + stackName + '" did not have a resource with logical name "' +
+               if (!resource) {
+                  throw new Error('Stack "' + stackName + '" did not have a resource with logical name "' +
                             pending.distLogicalName + '"');
-                  }
+               }
 
-                  memo[pending.distLogicalName] = resource.PhysicalResourceId;
+               memo[pending.distLogicalName] = resource.PhysicalResourceId;
 
-                  return memo;
-               }, {});
-            }.bind(this));
+               return memo;
+            }, {});
+         }.bind(this));
    },
 
    _addLambdaAtEdge: function(lambdaAtEdge, template, memo, selfObject, fnName) {
