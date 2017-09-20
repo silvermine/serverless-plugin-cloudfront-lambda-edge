@@ -187,9 +187,10 @@ module.exports = Class.extend({
    _updateDistributionAsNecessary: function(fns, distID, distName) {
       var self = this;
 
-      return this._waitForDistributionDeployed(distID, distName).then(function() {
-         return self._provider.request('CloudFront', 'getDistribution', { Id: distID });
-      })
+      return this._waitForDistributionDeployed(distID, distName)
+         .then(function() {
+            return self._provider.request('CloudFront', 'getDistribution', { Id: distID });
+         })
          .then(function(resp) {
             var config = resp.Distribution.DistributionConfig,
                 changed = self._modifyDistributionConfigIfNeeded(config, fns[distName]),
@@ -197,9 +198,10 @@ module.exports = Class.extend({
 
             if (changed) {
                self._serverless.cli.log('Updating distribution "' + distName + '" because we updated Lambda@Edge associations on it');
-               return self._provider.request('CloudFront', 'updateDistribution', updateParams).then(function() {
-                  return self._waitForDistributionDeployed(distID, distName);
-               })
+               return self._provider.request('CloudFront', 'updateDistribution', updateParams)
+                  .then(function() {
+                     return self._waitForDistributionDeployed(distID, distName);
+                  })
                   .then(function() {
                      self._serverless.cli.log('Done updating distribution "' + distName + '"');
                   });
@@ -253,9 +255,7 @@ module.exports = Class.extend({
    _getFunctionsToAssociate: function() {
       var stackName = this._provider.naming.getStackName();
 
-      return this._provider.request('CloudFormation', 'describeStacks', {
-         StackName: stackName,
-      })
+      return this._provider.request('CloudFormation', 'describeStacks', { StackName: stackName })
          .then(function(resp) {
             var stack = _.findWhere(resp.Stacks, { StackName: stackName });
 
@@ -288,9 +288,7 @@ module.exports = Class.extend({
    _getDistributionPhysicalIDs: function() {
       var stackName = this._provider.naming.getStackName();
 
-      return this._provider.request('CloudFormation', 'describeStackResources', {
-         StackName: stackName,
-      })
+      return this._provider.request('CloudFormation', 'describeStackResources', { StackName: stackName })
          .then(function(resp) {
             return _.reduce(this._pendingAssociations, function(memo, pending) {
                var resource = _.findWhere(resp.StackResources, { LogicalResourceId: pending.distLogicalName });
