@@ -114,37 +114,17 @@ module.exports = Class.extend({
 
       this._pendingAssociations = _.chain(functions)
          .reduce(function(memo, fnDef, fnName) {
-            var distName, evtType, dist;
-
             if (!fnDef.lambdaAtEdge) {
                return memo;
             }
 
-            distName = fnDef.lambdaAtEdge.distribution;
-            evtType = fnDef.lambdaAtEdge.eventType;
-            dist = template.Resources[distName];
-
-            if (fnDef.lambdaAtEdge) {
-               if (!_.contains(VALID_EVENT_TYPES, evtType)) {
-                  throw new Error('"' + evtType + '" is not a valid event type, must be one of: ' + VALID_EVENT_TYPES.join(', '));
-               }
-
-               if (!dist) {
-                  throw new Error('Could not find resource with logical name "' + distName + '"');
-               }
-
-               if (dist.Type !== 'AWS::CloudFront::Distribution') {
-                  throw new Error('Resource with logical name "' + distName + '" is not type AWS::CloudFront::Distribution');
-               }
-
-               memo.push({
-                  fnLogicalName: self._provider.naming.getLambdaLogicalId(fnName),
-                  distLogicalName: fnDef.lambdaAtEdge.distribution,
-                  fnCurrentVersionOutputName: self._provider.naming.getLambdaVersionOutputLogicalId(fnName),
-                  eventType: evtType,
+            if (_.isArray(fnDef.lambdaAtEdge)) {
+               _.each(fnDef.lambdaAtEdge, function(lambdaAtEdge) {
+                  self._addLambdaAtEdge(lambdaAtEdge, template, memo, self, fnName);
                });
+            } else {
+               self._addLambdaAtEdge(fnDef.lambdaAtEdge, template, memo, self, fnName);
             }
-
             return memo;
          }, [])
          .each(function(fn) {
@@ -323,5 +303,30 @@ module.exports = Class.extend({
          }.bind(this));
    },
 
+   _addLambdaAtEdge: function(lambdaAtEdge, template, memo, selfObject, fnName) {
+      var distName, evtType, dist;
 
+      distName = lambdaAtEdge.distribution;
+      evtType = lambdaAtEdge.eventType;
+      dist = template.Resources[distName];
+
+      if (!_.contains(VALID_EVENT_TYPES, evtType)) {
+         throw new Error('"' + evtType + '" is not a valid event type, must be one of: ' + VALID_EVENT_TYPES.join(', '));
+      }
+
+      if (!dist) {
+         throw new Error('Could not find resource with logical name "' + distName + '"');
+      }
+
+      if (dist.Type !== 'AWS::CloudFront::Distribution') {
+         throw new Error('Resource with logical name "' + distName + '" is not type AWS::CloudFront::Distribution');
+      }
+
+      memo.push({
+         fnLogicalName: selfObject._provider.naming.getLambdaLogicalId(fnName),
+         distLogicalName: lambdaAtEdge.distribution,
+         fnCurrentVersionOutputName: selfObject._provider.naming.getLambdaVersionOutputLogicalId(fnName),
+         eventType: evtType,
+      });
+   },
 });
