@@ -1,0 +1,46 @@
+##################################################
+## This is an example of deploying a Lambda@Edge
+## to an existing distribution and s3 bucket
+##
+## I have an existing s3 bucket called dev.wreckommendations.com
+## where 'dev' would be the stage, so it'd be deployed like:
+## sls deploy --stage dev --distribution-id [CloudFront ID]
+##################################################
+service: wreckommendations-com
+
+custom:
+   domainName: wreckommendations.com
+   defaultRegion: us-east-1
+   defaultEnvironmentGroup: dev
+   region: ${opt:region, self:custom.defaultRegion}
+   # use a unique stage and/or service name since s3 buckets need to be globally unique
+   stage: ${opt:stage, env:USER}
+   # A lot of my existing buckets are in the domain name format
+   objectPrefix: '${self:custom.stage}.${self:custom.domainName}'
+   distributionID: ${opt:distribution-id, env:AWS_CF_DIST_ID}
+
+plugins:
+   - serverless-plugin-cloudfront-lambda-edge
+
+package:
+   exclude:
+      - 'node_modules/**'
+
+provider:
+   name: aws
+   runtime: nodejs6.10 # Because this runs on CloudFront (lambda@edge) it must be 6.10
+   region: ${self:custom.region}
+   stage: ${self:custom.stage}
+
+functions:
+   addCustomerHeader:
+      name: '${self:custom.stage}-${self:service}-origin-response'
+      handler: handler.handler
+      memorySize: 128
+      timeout: 1
+      lambdaAtEdge:
+         distributionID: ${self:custom.distributionID}
+         # this is the default format when setting up CloudFront distributions
+         # in the AWS Console
+         distribution: 'S3-${self:custom.objectPrefix}'
+         eventType: 'origin-response'

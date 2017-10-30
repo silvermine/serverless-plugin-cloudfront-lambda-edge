@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Serverless Plugin CloudFront Lambda@Edge</title>
+    </head>
+    <body>
+        <h1>Serverless Plugin CloudFront Lambda@Edge example</h1>
+        <div>
+            <a href="https://github.com/silvermine/serverless-plugin-cloudfront-lambda-edge">https://github.com/silvermine/serverless-plugin-cloudfront-lambda-edge</a>
+        </div>
+        <div>
+            <p>Run the following command to see the 'X-Serverless-Example' header added by the Lambda function.</p>
+            <pre id="curl-command"></pre>
+        </div>
+        <script>
+          ;(function () {
+            var pre = document.getElementById('curl-command');
+            pre.innerText = 'curl -I ' + location.protocol + '//' + location.hostname;
+          })();
+        </script>
+    </body>
+</html>

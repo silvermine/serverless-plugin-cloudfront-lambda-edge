@@ -1,0 +1,74 @@
+service: static-site-CHANGEME
+
+custom:
+   defaultRegion: us-east-1
+   defaultEnvironmentGroup: dev
+   region: ${opt:region, self:custom.defaultRegion}
+   # use a unique stage and/or service name since s3 buckets need to be globally unique
+   stage: ${opt:stage, env:USER}
+   objectPrefix: '${self:service}-${self:custom.stage}'
+
+plugins:
+   - serverless-plugin-cloudfront-lambda-edge
+
+package:
+   exclude:
+      - 'node_modules/**'
+
+provider:
+   name: aws
+   runtime: nodejs6.10 # Because this runs on CloudFront (lambda@edge) it must be 6.10
+   region: ${self:custom.region}
+   stage: ${self:custom.stage}
+   # Note that Lambda@Edge does not actually support environment variables for lambda
+   # functions, but the plugin will strip the environment variables from any function
+   # that has edge configuration on it
+   environment:
+      SLS_SVC_NAME: ${self:service}
+      SLS_STAGE: ${self:custom.stage}
+
+functions:
+   addCustomerHeader:
+      name: '${self:custom.objectPrefix}-origin-response'
+      handler: handler.handler
+      memorySize: 128
+      timeout: 1
+      lambdaAtEdge:
+         distribution: 'WebsiteDistribution'
+         eventType: 'origin-response'
+
+resources:
+   Resources:
+      WebsiteBucket:
+         Type: 'AWS::S3::Bucket'
+         Properties:
+            BucketName: '${self:custom.objectPrefix}'
+            AccessControl: 'PublicRead'
+            WebsiteConfiguration:
+               IndexDocument: 'index.html'
+               ErrorDocument: 'error.html'
+      WebsiteDistribution:
+         Type: 'AWS::CloudFront::Distribution'
+         Properties:
+            DistributionConfig:
+               DefaultCacheBehavior:
+                  TargetOriginId: 'WebsiteBucketOrigin'
+                  ViewerProtocolPolicy: 'redirect-to-https'
+                  DefaultTTL: 600 # ten minutes
+                  MaxTTL: 600 # ten minutes
+                  Compress: true
+                  ForwardedValues:
+                     QueryString: false
+                     Cookies:
+                        Forward: 'none'
+               DefaultRootObject: 'index.html'
+               Enabled: true
+               PriceClass: 'PriceClass_100'
+               HttpVersion: 'http2'
+               ViewerCertificate:
+                  CloudFrontDefaultCertificate: true
+               Origins:
+                  -
+                     Id: 'WebsiteBucketOrigin'
+                     DomainName: { 'Fn::GetAtt': [ 'WebsiteBucket', 'DomainName' ] }
+                     S3OriginConfig: {}

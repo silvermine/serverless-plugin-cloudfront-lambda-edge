@@ -44,6 +44,15 @@ function. Unfortunately this means that at times your CloudFront distribution wi
 updated twice in a row - and CloudFront distributions are extremely slow to update
 (approximately 15 minutes for each update). What can you do 🤷?
 
+## A Few Other Things to Keep In Mind
+
+1. As mentioned above, CloudFront distributions can take a long time to deploy,
+so you probably want to keep this separate from other "normal" serverless services.
+2. It does not appear that you can delete Lambda@Edge functions because they are replicated.
+You'll see an error like `There was an error deleting this version: Lambda was unable to delete [some function ARN] because it is a replicated function.` Here are a few links about it:
+    * https://stackoverflow.com/questions/45296923/cannot-delete-aws-lambdaedge-replicas
+    * https://forums.aws.amazon.com/thread.jspa?threadID=260242&tstart=0
+
 
 ## How do I use it?
 
@@ -198,6 +207,7 @@ module.exports = {
 };
 ```
 
+You can find more in the examples directory.
 
 ## How do I contribute?
 
