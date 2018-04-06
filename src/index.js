@@ -39,15 +39,15 @@ module.exports = Class.extend({
          return;
       }
 
-      /**
-       * Each entry in the this._pendingAssociations array looks like this:
-       * {
-       *    "fnLogicalName": "YourFnNameLambdaFunction",
-       *    "distLogicalName": "WebsiteDistribution",
-       *    "fnCurrentVersionOutputName": "YourFnNameLambdaFunctionQualifiedArn",
-       *    "eventType": "origin-request",
-       * }
-       */
+        /**
+         * Each entry in the this._pendingAssociations array looks like this:
+         * {
+         *    "fnLogicalName": "YourFnNameLambdaFunction",
+         *    "distLogicalName": "WebsiteDistribution",
+         *    "fnCurrentVersionOutputName": "YourFnNameLambdaFunctionQualifiedArn",
+         *    "eventType": "origin-request",
+         * }
+         */
 
       this._serverless.cli.log(
          'Checking to see if ' + cnt +
@@ -84,15 +84,16 @@ module.exports = Class.extend({
          }
       }.bind(this));
 
-      // Serverless creates a LogGroup by a specific name, and grants logs:CreateLogStream
-      // and logs:PutLogEvents permissions to the function. However, on a replicated
-      // function, AWS will name the log groups differently, so the Serverless-created
-      // permissions will not work. Thus, we must give the function permission to create
-      // log groups and streams, as well as put log events.
-      //
-      // Since we don't have control over the naming of the log group, we let this
-      // function have permission to create and use a log group by any name.
-      // See http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html
+        // Serverless creates a LogGroup by a specific name,
+        // and grants logs:CreateLogStream
+        // and logs:PutLogEvents permissions to the function. However, on a replicated
+        // function, AWS will name the log groups differently, so the Serverless-created
+        // permissions will not work. Thus, we must give the function permission to create
+        // log groups and streams, as well as put log events.
+        //
+        // Since we don't have control over the naming of the log group, we let this
+        // function have permission to create and use a log group by any name.
+        // See http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-identity-based-access-control-cwl.html
       template.Resources.IamRoleLambdaExecution.Properties.Policies[0].PolicyDocument.Statement.push({
          Effect: 'Allow',
          Action: [
@@ -114,37 +115,17 @@ module.exports = Class.extend({
 
       this._pendingAssociations = _.chain(functions)
          .reduce(function(memo, fnDef, fnName) {
-            var distName, evtType, dist;
-
             if (!fnDef.lambdaAtEdge) {
                return memo;
             }
 
-            distName = fnDef.lambdaAtEdge.distribution;
-            evtType = fnDef.lambdaAtEdge.eventType;
-            dist = template.Resources[distName];
-
-            if (fnDef.lambdaAtEdge) {
-               if (!_.contains(VALID_EVENT_TYPES, evtType)) {
-                  throw new Error('"' + evtType + '" is not a valid event type, must be one of: ' + VALID_EVENT_TYPES.join(', '));
-               }
-
-               if (!dist) {
-                  throw new Error('Could not find resource with logical name "' + distName + '"');
-               }
-
-               if (dist.Type !== 'AWS::CloudFront::Distribution') {
-                  throw new Error('Resource with logical name "' + distName + '" is not type AWS::CloudFront::Distribution');
-               }
-
-               memo.push({
-                  fnLogicalName: self._provider.naming.getLambdaLogicalId(fnName),
-                  distLogicalName: fnDef.lambdaAtEdge.distribution,
-                  fnCurrentVersionOutputName: self._provider.naming.getLambdaVersionOutputLogicalId(fnName),
-                  eventType: evtType,
+            if (_.isArray(fnDef.lambdaAtEdge)) {
+               _.each(fnDef.lambdaAtEdge, function(lambdaAtEdge) {
+                  self._addLambdaAtEdge(lambdaAtEdge, template, memo, self, fnName);
                });
+            } else {
+               self._addLambdaAtEdge(fnDef.lambdaAtEdge, template, memo, self, fnName);
             }
-
             return memo;
          }, [])
          .each(function(fn) {
@@ -196,7 +177,7 @@ module.exports = Class.extend({
          .then(function(resp) {
             running = false;
             if (!firstDot) {
-               // we have printed a dot, so clear the line
+                 // we have printed a dot, so clear the line
                this._serverless.cli.consoleLog('');
             }
             this._serverless.cli.log('Distribution "' + distLogicalName + '" is now in "' + resp.Distribution.Status + '" state');
@@ -313,7 +294,8 @@ module.exports = Class.extend({
                var resource = _.findWhere(resp.StackResources, { LogicalResourceId: pending.distLogicalName });
 
                if (!resource) {
-                  throw new Error('Stack "' + stackName + '" did not have a resource with logical name "' + pending.distLogicalName + '"');
+                  throw new Error('Stack "' + stackName + '" did not have a resource with logical name "' +
+                            pending.distLogicalName + '"');
                }
 
                memo[pending.distLogicalName] = resource.PhysicalResourceId;
@@ -323,5 +305,30 @@ module.exports = Class.extend({
          }.bind(this));
    },
 
+   _addLambdaAtEdge: function(lambdaAtEdge, template, memo, selfObject, fnName) {
+      var distName, evtType, dist;
 
+      distName = lambdaAtEdge.distribution;
+      evtType = lambdaAtEdge.eventType;
+      dist = template.Resources[distName];
+
+      if (!_.contains(VALID_EVENT_TYPES, evtType)) {
+         throw new Error('"' + evtType + '" is not a valid event type, must be one of: ' + VALID_EVENT_TYPES.join(', '));
+      }
+
+      if (!dist) {
+         throw new Error('Could not find resource with logical name "' + distName + '"');
+      }
+
+      if (dist.Type !== 'AWS::CloudFront::Distribution') {
+         throw new Error('Resource with logical name "' + distName + '" is not type AWS::CloudFront::Distribution');
+      }
+
+      memo.push({
+         fnLogicalName: selfObject._provider.naming.getLambdaLogicalId(fnName),
+         distLogicalName: lambdaAtEdge.distribution,
+         fnCurrentVersionOutputName: selfObject._provider.naming.getLambdaVersionOutputLogicalId(fnName),
+         eventType: evtType,
+      });
+   },
 });
