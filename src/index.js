@@ -72,70 +72,92 @@ module.exports = Class.extend({
    },
 
    _modifyLambdaFunctionsAndDistributions: function(functions, template) {
-      var self = this;
-
       _.chain(functions)
          .pick(_.property('lambdaAtEdge')) // `pick` is used like `filter`, but for objects
          .each(function(fnDef, fnName) {
-            var outputName = self._provider.naming.getLambdaVersionOutputLogicalId(fnName),
-                fnLogicalName = self._provider.naming.getLambdaLogicalId(fnName),
-                distName = fnDef.lambdaAtEdge.distribution,
-                fnProps = template.Resources[fnLogicalName].Properties,
-                evtType = fnDef.lambdaAtEdge.eventType,
-                output = template.Outputs[outputName],
-                dist = template.Resources[distName],
-                distConfig, fnAssociations, versionLogicalID;
+            var lambdaAtEdge = fnDef.lambdaAtEdge;
 
-            if (!_.contains(VALID_EVENT_TYPES, evtType)) {
-               throw new Error('"' + evtType + '" is not a valid event type, must be one of: ' + VALID_EVENT_TYPES.join(', '));
+            if (_.isArray(lambdaAtEdge)) {
+               _.each(lambdaAtEdge, this._handleSingleFunctionAssociation.bind(this, template, fnDef, fnName));
+            } else {
+               this._handleSingleFunctionAssociation(template, fnDef, fnName, lambdaAtEdge);
             }
+         }.bind(this));
+   },
 
-            if (!dist) {
-               throw new Error('Could not find resource with logical name "' + distName + '"');
-            }
+   _handleSingleFunctionAssociation: function(template, fnDef, fnName, lambdaAtEdge) {
+      var fnLogicalName = this._provider.naming.getLambdaLogicalId(fnName),
+          pathPattern = lambdaAtEdge.pathPattern,
+          outputName = this._provider.naming.getLambdaVersionOutputLogicalId(fnName),
+          distName = lambdaAtEdge.distribution,
+          fnProps = template.Resources[fnLogicalName].Properties,
+          evtType = lambdaAtEdge.eventType,
+          output = template.Outputs[outputName],
+          dist = template.Resources[distName],
+          distConfig, cacheBehavior, fnAssociations, versionLogicalID;
 
-            if (dist.Type !== 'AWS::CloudFront::Distribution') {
-               throw new Error('Resource with logical name "' + distName + '" is not type AWS::CloudFront::Distribution');
-            }
+      if (!_.contains(VALID_EVENT_TYPES, evtType)) {
+         throw new Error('"' + evtType + '" is not a valid event type, must be one of: ' + VALID_EVENT_TYPES.join(', '));
+      }
 
-            distConfig = dist.Properties.DistributionConfig;
-            fnAssociations = distConfig.DefaultCacheBehavior.LambdaFunctionAssociations;
-            versionLogicalID = (output ? output.Value.Ref : null);
+      if (!dist) {
+         throw new Error('Could not find resource with logical name "' + distName + '"');
+      }
 
-            if (!versionLogicalID) {
-               throw new Error('Could not find output by name of "' + outputName + '" or value from it to use version ARN');
-            }
+      if (dist.Type !== 'AWS::CloudFront::Distribution') {
+         throw new Error('Resource with logical name "' + distName + '" is not type AWS::CloudFront::Distribution');
+      }
 
-            if (fnProps && fnProps.Environment && fnProps.Environment.Variables) {
-               self._serverless.cli.log(
-                  'Removing ' +
-                  _.size(fnProps.Environment.Variables) +
-                  ' environment variables from function "' +
-                  fnLogicalName +
-                  '" because Lambda@Edge does not support environment variables'
-               );
+      versionLogicalID = (output ? output.Value.Ref : null);
 
-               delete fnProps.Environment.Variables;
+      if (!versionLogicalID) {
+         throw new Error('Could not find output by name of "' + outputName + '" or value from it to use version ARN');
+      }
 
-               if (_.isEmpty(fnProps.Environment)) {
-                  delete fnProps.Environment;
-               }
-            }
+      if (fnProps && fnProps.Environment && fnProps.Environment.Variables) {
+         this._serverless.cli.log(
+            'Removing ' +
+            _.size(fnProps.Environment.Variables) +
+            ' environment variables from function "' +
+            fnLogicalName +
+            '" because Lambda@Edge does not support environment variables'
+         );
 
-            if (!_.isArray(fnAssociations)) {
-               fnAssociations = distConfig.DefaultCacheBehavior.LambdaFunctionAssociations = [];
-            }
+         delete fnProps.Environment.Variables;
 
-            fnAssociations.push({
-               EventType: evtType,
-               LambdaFunctionARN: { Ref: versionLogicalID },
-            });
+         if (_.isEmpty(fnProps.Environment)) {
+            delete fnProps.Environment;
+         }
+      }
 
-            self._serverless.cli.log(
-               'Added "' + evtType + '" Lambda@Edge association for version "' +
-               versionLogicalID + '" to distribution "' + distName + '"'
-            );
-         });
+      distConfig = dist.Properties.DistributionConfig;
+
+      if (pathPattern) {
+         cacheBehavior = _.findWhere(distConfig.CacheBehaviors, { PathPattern: pathPattern });
+
+         if (!cacheBehavior) {
+            throw new Error('Could not find cache behavior in "' + distName + '" with path pattern "' + pathPattern + '"');
+         }
+      } else {
+         cacheBehavior = distConfig.DefaultCacheBehavior;
+      }
+
+      fnAssociations = cacheBehavior.LambdaFunctionAssociations;
+
+      if (!_.isArray(fnAssociations)) {
+         fnAssociations = cacheBehavior.LambdaFunctionAssociations = [];
+      }
+
+      fnAssociations.push({
+         EventType: evtType,
+         LambdaFunctionARN: { Ref: versionLogicalID },
+      });
+
+      this._serverless.cli.log(
+         'Added "' + evtType + '" Lambda@Edge association for version "' +
+         versionLogicalID + '" to distribution "' + distName + '"' +
+         (pathPattern ? ' (path pattern "' + pathPattern + '")' : '')
+      );
    },
 
 });
