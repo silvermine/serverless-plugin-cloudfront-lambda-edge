@@ -9,40 +9,27 @@
 ## What is it?
 
 This is a plugin for the Serverless framework that adds support for associating a Lambda
-function with a CloudFront distribution to take advantage of the new Lambda@Edge features
-of CloudFront.
+function with a CloudFront distribution to take advantage of the Lambda@Edge features of
+CloudFront.
 
-Unfortunately CloudFormation does not currently support Lambda@Edge. I have opened a
-[ticket with them](https://forums.aws.amazon.com/thread.jspa?threadID=262327) and hope
-they will eventually add support for it. Once they do, then the Serverless team can also
-add support for it ([issue here](https://github.com/serverless/serverless/issues/3944)).
+Even though CloudFormation added support for Lambda@Edge via its
+[`LambdaFunctionAssociations`][FnAssoc] config object, it would be difficult to define a
+CloudFront distribution in your serverless.yml file's resources that links to one of the
+functions that you're deploying with Serverless.
 
-A CloudFormation custom resource would not work well for this type of work because:
+Why? Because the [`LambdaFunctionAssociations`][FnAssoc] array needs a reference to the
+Lambda function's _version_ (`AWS::Lambda::Version` resource), not just the function
+itself. (The documentation for CloudFormation says "You must specify the ARN of a function
+version; you can't specify a Lambda alias or $LATEST."). Serverless creates the version
+automatically for you, but the logical ID for it is seemingly random. You'd need that
+logical ID to use a `Ref` in your CloudFormation template for the function association.
 
-   1. The default policy that Serverless creates for Lambda functions won't work because
-      when AWS replicates a function to be used for Lambda@Edge, it assigns it to
-      different log group names than a typical Lambda function. Thus, the default policy
-      needed to be updated before being submitted to CloudFormation
-      * See https://github.com/silvermine/serverless-plugin-cloudfront-lambda-edge/blob/3605ad93766ce60014206b35b0bd1d44ee4f3427/src/index.js#L87-L105
-   2. Similarly, the AssumeRolePolicy on the role that Serverless creates for the Lambda
-      to execute in needs the principal `edgelambda.amazonaws.com` added (it has just
-      `lambda.amazonaws.com`).
-      * See https://github.com/silvermine/serverless-plugin-cloudfront-lambda-edge/blob/3605ad93766ce60014206b35b0bd1d44ee4f3427/src/index.js#L77-L85
-   3. Also, the CloudFront distribution is managed by CloudFormation, and then for us to
-      add our Lambda@Edge functions to it requires a second update. A custom resource
-      can't take on management of a resource that's already managed within the stack, and
-      we don't want to build a custom resource that has to entirely manage the CloudFront
-      distribution.
-
-Thus, the plugin will make the first two modifications to the CloudFormation template
-before Serverless writes it. It will also remove any environment variables from the Lambda
-function's CloudFormation resource because they are not supported by Lambda@Edge (it only
-does this on functions that will be associated with a CloudFront distribution). Then after
-the deploy is done, it will check to see if an update is needed to the CloudFront
-distribution, and if so, will update it to reference the latest versions of the Lambda
-function. Unfortunately this means that at times your CloudFront distribution will be
-updated twice in a row - and CloudFront distributions are extremely slow to update
-(approximately 15 minutes for each update). What can you do 🤷?
+This plugin hides all that for you - it uses other features in Serverless to be able to
+programmatically determine the function's logical ID and build the reference for you in
+the LambdaFunctionAssociations object. It directly modifies your CloudFormation template
+before the stack is ever deployed, so that CloudFormation does the heavy lifting for you.
+This 2.0 version of the plugin is thus much faster and easier to use than the 1.0 version
+(which existed before CloudFormation supported Lambda@Edge).
 
 
 ## How do I use it?
@@ -66,32 +53,73 @@ plugins:
 
 ### Configuring Functions to Associate With CloudFront Distributions
 
-Also in your `serverless.yml` file, you will modify your function definitions
-to include a `lambdaAtEdge` property. That object will contain two key/value
-pairs: `distribution` and `eventType`.
+Also in your `serverless.yml` file, you will modify your function definitions to include a
+`lambdaAtEdge` property. That property can be an object if you are associating the
+function with only a single distribution (or single cache behavior). Or, if you want the
+same function associated with multiple distributions or cache behaviors, the property
+value can be an array of objects. Whether you define a single object or an array of
+objects, the objects all have the same fields, each of which is explained here:
 
-The `distribution` is the logical name used in your `Resources` section to
-define the CloudFront distribution.
-
-The `eventType` is one of the four Lambda@Edge event types:
-
-   * viewer-request
-   * origin-request
-   * viewer-response
-   * origin-response
+   * **`distribution`** (required): the logical name used in your `Resources` section to
+     define the CloudFront distribution.
+   * **`eventType`** (required): a string, one of the four Lambda@Edge event types:
+      * viewer-request
+      * origin-request
+      * viewer-response
+      * origin-response
+   * **`pathPattern`** (optional): a string, the path pattern of one of the cache
+     behaviors in the specified distribution if you want this function to be associated
+     with a specific cache behavior. If the path pattern is not defined here, the function
+     will be associated with the default cache behavior for the specified distribution.
 
 For example:
 
 ```yml
 functions:
    directoryRootOriginRequestRewriter:
-      name: '${self:custom.objectPrefix}-origin-request'
+      name: '${self:custom.objectPrefix}-directory-root-origin-request-rewriter'
       handler: src/DirectoryRootOriginRequestRewriteHandler.handler
       memorySize: 128
       timeout: 1
       lambdaAtEdge:
          distribution: 'WebsiteDistribution'
          eventType: 'origin-request'
+```
+
+Or:
+
+```yml
+functions:
+   someImageHandlingFunction:
+      name: '${self:custom.objectPrefix}-image-handling'
+      handler: src/ImageSomethingHandler.handler
+      memorySize: 128
+      timeout: 1
+      lambdaAtEdge:
+         distribution: 'WebsiteDistribution'
+         eventType: 'viewer-request'
+         # This must match a path pattern in a cache behavior of the distribution:
+         pathPattern: 'images/*.jpg'
+```
+
+Or:
+
+```yml
+functions:
+   someFunction:
+      name: '${self:custom.objectPrefix}'
+      handler: src/SomethingHandler.handler
+      memorySize: 128
+      timeout: 1
+      lambdaAtEdge:
+         -
+            distribution: 'WebsiteDistribution'
+            eventType: 'viewer-response'
+            # This must match a path pattern in a cache behavior of the distribution:
+            pathPattern: 'images/*.jpg'
+         -
+            distribution: 'OtherDistribution'
+            eventType: 'viewer-response'
 ```
 
 
@@ -213,3 +241,4 @@ details.
 
 
 [contributing]: https://github.com/silvermine/silvermine-info#contributing
+[FnAssoc]: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cloudfront-distribution-cachebehavior.html#cfn-cloudfront-distribution-cachebehavior-lambdafunctionassociations
