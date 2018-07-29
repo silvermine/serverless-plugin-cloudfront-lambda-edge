@@ -72,6 +72,17 @@ objects, the objects all have the same fields, each of which is explained here:
      with a specific cache behavior. If the path pattern is not defined here, the function
      will be associated with the default cache behavior for the specified distribution.
 
+You can also apply global properties by adding the `lambdaAtEdge` property to your
+`custom` section of your `serverless.yml`. **Note:** This section currently only supports
+the follow option:
+
+   * **`retain`** (optional): a boolean (default `false`). If you set this value to
+     `true`, it will set the [DeletionPolicy][DeletionPolicy] of the function resource to
+     `Retain`. This can be used to avoid the currently-inevitable [CloudFormation stack
+     deletion failure][ReplicaDeleteFail]. There are at least [two schools of
+     thought][HandlingCFNFailure] on how to handle this issue. Hopefully AWS will have
+     this fixed soon. Use at your own discretion.
+
 For example:
 
 ```yml
@@ -89,6 +100,10 @@ functions:
 Or:
 
 ```yml
+custom:
+   lambdaAtEdge:
+      retain: true
+
 functions:
    someImageHandlingFunction:
       name: '${self:custom.objectPrefix}-image-handling'
@@ -242,3 +257,6 @@ details.
 
 [contributing]: https://github.com/silvermine/silvermine-info#contributing
 [FnAssoc]: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cloudfront-distribution-cachebehavior.html#cfn-cloudfront-distribution-cachebehavior-lambdafunctionassociations
+[DeletionPolicy]: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-deletionpolicy.html
+[ReplicaDeleteFail]: https://forums.aws.amazon.com/thread.jspa?threadID=260242&tstart=0
+[HandlingCFNFailure]: https://github.com/silvermine/serverless-plugin-cloudfront-lambda-edge/pull/19
