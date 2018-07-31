@@ -147,7 +147,7 @@ package:
 
 provider:
    name: aws
-   runtime: nodejs6.10 # Because this runs on CloudFront (lambda@edge) it must be 6.10
+   runtime: nodejs6.10 # Because this runs on CloudFront (lambda@edge) it must be 6.10 or greater
    region: ${self:custom.region}
    stage: ${self:custom.stage}
    # Note that Lambda@Edge does not actually support environment variables for lambda
@@ -216,8 +216,10 @@ module.exports = {
       var req = evt.Records[0].cf.request;
 
       if (req.uri && req.uri.length && req.uri.substring(req.uri.length - 1) === '/') {
-         console.log('changing "%s" to "%s"', req.uri, req.uri + 'index.html');
-         req.uri = req.uri + 'index.html';
+         var uri = req.uri + 'index.html';
+
+         console.log('changing "%s" to "%s"', req.uri, uri);
+         req.uri = uri;
       }
 
       cb(null, req);
