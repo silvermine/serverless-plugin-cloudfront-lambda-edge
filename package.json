@@ -1,6 +1,6 @@
 {
   "name": "serverless-plugin-cloudfront-lambda-edge",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Plugin for the SLS 1.x branch to provide support for Lambda@Edge (not currently supported by CloudFormation",
   "main": "src/index.js",
   "scripts": {
