@@ -10,6 +10,7 @@ module.exports = Class.extend({
       this._serverless = serverless;
       this._provider = serverless ? serverless.getProvider('aws') : null;
       this._opts = opts;
+      this._custom = serverless.service ? serverless.service.custom : null;
 
       if (!this._provider) {
          throw new Error('This plugin must be used with AWS');
@@ -90,10 +91,12 @@ module.exports = Class.extend({
           pathPattern = lambdaAtEdge.pathPattern,
           outputName = this._provider.naming.getLambdaVersionOutputLogicalId(fnName),
           distName = lambdaAtEdge.distribution,
+          fnObj = template.Resources[fnLogicalName],
           fnProps = template.Resources[fnLogicalName].Properties,
           evtType = lambdaAtEdge.eventType,
           output = template.Outputs[outputName],
           dist = template.Resources[distName],
+          retainFunctions = this._custom && this._custom.lambdaAtEdge && (this._custom.lambdaAtEdge.retain === true),
           distConfig, cacheBehavior, fnAssociations, versionLogicalID;
 
       if (!_.contains(VALID_EVENT_TYPES, evtType)) {
@@ -128,6 +131,10 @@ module.exports = Class.extend({
          if (_.isEmpty(fnProps.Environment)) {
             delete fnProps.Environment;
          }
+      }
+
+      if (retainFunctions) {
+         fnObj.DeletionPolicy = 'Retain';
       }
 
       distConfig = dist.Properties.DistributionConfig;
