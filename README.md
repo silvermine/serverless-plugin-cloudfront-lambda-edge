@@ -39,7 +39,7 @@ There are three steps:
 ### Install the Plugin as a Development Dependency
 
 ```bash
-npm install --save-dev --save-exact serverless-plugin-cloudfront-lambda-edge
+npm install --save-dev --save-exact @silvermine/serverless-plugin-cloudfront-lambda-edge
 ```
 
 ### Telling Serverless to Use the Plugin
@@ -48,7 +48,7 @@ Simply add this plugin to the list of plugins in your `serverless.yml` file:
 
 ```yml
 plugins:
-   - serverless-plugin-cloudfront-lambda-edge
+   - @silvermine/serverless-plugin-cloudfront-lambda-edge
 ```
 
 ### Configuring Functions to Associate With CloudFront Distributions
@@ -154,7 +154,7 @@ custom:
    objectPrefix: '${self:service}-${self:custom.stage}'
 
 plugins:
-   - serverless-plugin-cloudfront-lambda-edge
+   - @silvermine/serverless-plugin-cloudfront-lambda-edge
 
 package:
    exclude:
