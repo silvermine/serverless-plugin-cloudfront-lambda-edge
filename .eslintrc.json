@@ -1,5 +1,5 @@
 {
 
-   "extends": "eslint-config-silvermine/node"
+   "extends": "@silvermine/eslint-config/node"
 
 }
