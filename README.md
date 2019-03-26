@@ -154,7 +154,7 @@ custom:
    objectPrefix: '${self:service}-${self:custom.stage}'
 
 plugins:
-   - @silvermine/serverless-plugin-cloudfront-lambda-edge
+   - '@silvermine/serverless-plugin-cloudfront-lambda-edge'
 
 package:
    exclude:
