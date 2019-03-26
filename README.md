@@ -48,7 +48,7 @@ Simply add this plugin to the list of plugins in your `serverless.yml` file:
 
 ```yml
 plugins:
-   - @silvermine/serverless-plugin-cloudfront-lambda-edge
+   - '@silvermine/serverless-plugin-cloudfront-lambda-edge'
 ```
 
 ### Configuring Functions to Associate With CloudFront Distributions
