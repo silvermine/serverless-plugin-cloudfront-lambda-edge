@@ -140,7 +140,14 @@ module.exports = Class.extend({
       distConfig = dist.Properties.DistributionConfig;
 
       if (pathPattern) {
-         cacheBehavior = _.findWhere(distConfig.CacheBehaviors, { PathPattern: pathPattern });
+         if(typeof pathPattern === 'object') {
+            pathPattern = pathPattern.Ref
+            cacheBehavior = _.find(distConfig.CacheBehaviors, function(beh) {
+               return beh.PathPattern.Ref === pathPattern
+            })
+         } else {
+           cacheBehavior = _.findWhere(distConfig.CacheBehaviors, { PathPattern: pathPattern });
+         }
 
          if (!cacheBehavior) {
             throw new Error('Could not find cache behavior in "' + distName + '" with path pattern "' + pathPattern + '"');
