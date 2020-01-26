@@ -67,10 +67,10 @@ objects, the objects all have the same fields, each of which is explained here:
       * origin-request
       * viewer-response
       * origin-response
-   * **`pathPattern`** (optional): a string, the path pattern of one of the cache
-     behaviors in the specified distribution if you want this function to be associated
-     with a specific cache behavior. If the path pattern is not defined here, the function
-     will be associated with the default cache behavior for the specified distribution.
+   * **`pathPattern`** (optional): a string or CloudFormation reference to a string, the path
+     pattern of one of the cache behaviors in the specified distribution if you want this function
+     to be associated with a specific cache behavior. If the path pattern is not defined here, the
+     function will be associated with the default cache behavior for the specified distribution.
 
 You can also apply global properties by adding the `lambdaAtEdge` property to your
 `custom` section of your `serverless.yml`. **Note:** This section currently only supports

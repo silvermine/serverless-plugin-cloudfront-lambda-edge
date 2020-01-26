@@ -140,10 +140,11 @@ module.exports = Class.extend({
       distConfig = dist.Properties.DistributionConfig;
 
       if (pathPattern) {
+         // If an object is being passed in let's assume it's a reference
          if(typeof pathPattern === 'object') {
             pathPattern = pathPattern.Ref
-            cacheBehavior = _.find(distConfig.CacheBehaviors, function(beh) {
-               return beh.PathPattern.Ref === pathPattern
+            cacheBehavior = _.find(distConfig.CacheBehaviors, function(cb) {
+               return cb.PathPattern.Ref === pathPattern
             })
          } else {
            cacheBehavior = _.findWhere(distConfig.CacheBehaviors, { PathPattern: pathPattern });
