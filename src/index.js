@@ -94,6 +94,7 @@ module.exports = Class.extend({
           fnObj = template.Resources[fnLogicalName],
           fnProps = template.Resources[fnLogicalName].Properties,
           evtType = lambdaAtEdge.eventType,
+          includeBody = lambdaAtEdge.includeBody || false,
           output = template.Outputs[outputName],
           dist = template.Resources[distName],
           retainFunctions = this._custom && this._custom.lambdaAtEdge && (this._custom.lambdaAtEdge.retain === true),
@@ -157,13 +158,15 @@ module.exports = Class.extend({
 
       fnAssociations.push({
          EventType: evtType,
+         IncludeBody: includeBody,
          LambdaFunctionARN: { Ref: versionLogicalID },
       });
 
       this._serverless.cli.log(
          'Added "' + evtType + '" Lambda@Edge association for version "' +
          versionLogicalID + '" to distribution "' + distName + '"' +
-         (pathPattern ? ' (path pattern "' + pathPattern + '")' : '')
+         (pathPattern ? ' (path pattern "' + pathPattern + '")' : '') +
+         (includeBody ? ' (IncludeBody)' : '')
       );
    },
 
