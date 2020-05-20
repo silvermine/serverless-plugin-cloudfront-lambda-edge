@@ -11,6 +11,7 @@ before_install: npm i -g npm@6.13.4
 script:
    - node --version
    - npm --version
+   - commitlint-travis
    - grunt standards
    - npm test
 

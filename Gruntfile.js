@@ -1,5 +1,7 @@
 'use strict';
 
+var markdownlint = require('markdownlint');
+
 module.exports = function(grunt) {
 
    var config;
@@ -18,11 +20,22 @@ module.exports = function(grunt) {
          target: config.js.all,
       },
 
+      markdownlint: {
+         all: {
+            src: [ 'README.md' ],
+            options: {
+               // eslint-disable-next-line no-sync
+               config: markdownlint.readConfigSync('.markdownlint.json'),
+            },
+         },
+      },
+
    });
 
    grunt.loadNpmTasks('grunt-eslint');
+   grunt.loadNpmTasks('grunt-markdownlint');
 
-   grunt.registerTask('standards', [ 'eslint' ]);
+   grunt.registerTask('standards', [ 'eslint', 'markdownlint' ]);
    grunt.registerTask('default', [ 'standards' ]);
 
 };
