@@ -2,11 +2,11 @@ language: node_js
 node_js:
    - "node" # Latest node version
    - "lts/*" # Latest LTS version
+   - "12"
    - "10"
    - "8"
-   - "8.10"
 
-before_install: if [[ `npm -v` != 6* ]]; then npm i -g npm@6.4.1; fi
+before_install: npm i -g npm@6.13.4
 
 script:
    - node --version
