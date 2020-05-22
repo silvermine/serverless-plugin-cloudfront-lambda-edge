@@ -1,6 +1,6 @@
 # Serverless Plugin: Support CloudFront Lambda@Edge
 
-[![Build Status](https://travis-ci.org/silvermine/serverless-plugin-cloudfront-lambda-edge.svg?branch=master)](https://travis-ci.org/silvermine/serverless-plugin-cloudfront-lambda-edge)
+[![Build Status](https://travis-ci.com/silvermine/serverless-plugin-cloudfront-lambda-edge.svg?branch=master)](https://travis-ci.com/silvermine/serverless-plugin-cloudfront-lambda-edge)
 [![Coverage Status](https://coveralls.io/repos/github/silvermine/serverless-plugin-cloudfront-lambda-edge/badge.svg?branch=master)](https://coveralls.io/github/silvermine/serverless-plugin-cloudfront-lambda-edge?branch=master)
 [![Dependency Status](https://david-dm.org/silvermine/serverless-plugin-cloudfront-lambda-edge.svg)](https://david-dm.org/silvermine/serverless-plugin-cloudfront-lambda-edge)
 [![Dev Dependency Status](https://david-dm.org/silvermine/serverless-plugin-cloudfront-lambda-edge/dev-status.svg)](https://david-dm.org/silvermine/serverless-plugin-cloudfront-lambda-edge#info=devDependencies&view=table)
