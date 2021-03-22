@@ -71,6 +71,9 @@ objects, the objects all have the same fields, each of which is explained here:
      behaviors in the specified distribution if you want this function to be associated
      with a specific cache behavior. If the path pattern is not defined here, the function
      will be associated with the default cache behavior for the specified distribution.
+   * **`includeBody`** (optional): a boolean, `true` if you want to include the body in
+     the request event your function receives. See [the AWS docs][includeBody] for more
+     info.
 
 You can also apply global properties by adding the `lambdaAtEdge` property to your
 `custom` section of your `serverless.yml`. **Note:** This section currently only supports
@@ -262,3 +265,4 @@ details.
 [DeletionPolicy]: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-deletionpolicy.html
 [ReplicaDeleteFail]: https://forums.aws.amazon.com/thread.jspa?threadID=260242&tstart=0
 [HandlingCFNFailure]: https://github.com/silvermine/serverless-plugin-cloudfront-lambda-edge/pull/19
+[includeBody]: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/lambda-include-body-access.html
