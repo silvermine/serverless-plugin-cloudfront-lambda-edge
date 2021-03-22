@@ -15,6 +15,10 @@ function stubServerless() {
          consoleLog: _.noop,
          printDot: _.noop,
       },
+      configSchemaHandler: {
+         defineCustomProperties: _.noop,
+         defineFunctionProperties: _.noop,
+      },
    };
 }
 

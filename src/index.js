@@ -16,6 +16,43 @@ module.exports = Class.extend({
          throw new Error('This plugin must be used with AWS');
       }
 
+      serverless.configSchemaHandler.defineCustomProperties({
+         type: 'object',
+         properties: {
+            'lambdaAtEdge': {
+               type: 'object',
+               properties: {
+                  retain: { type: 'boolean' },
+               },
+            },
+         },
+      });
+
+      const functionPropertySchema = {
+         type: 'object',
+         properties: {
+            distribution: { type: 'string' },
+            eventType: { enum: VALID_EVENT_TYPES },
+            pathPattern: { type: 'string' },
+         },
+         required: [ 'distribution', 'eventType' ],
+      };
+
+      serverless.configSchemaHandler.defineFunctionProperties('aws', {
+         properties: {
+            'lambdaAtEdge': {
+               oneOf: [
+                  {
+                     type: 'array',
+                     items: functionPropertySchema,
+                  },
+                  functionPropertySchema,
+               ],
+            },
+         },
+         required: [ 'lambdaAtEdge' ],
+      });
+
       this.hooks = {
          'aws:package:finalize:mergeCustomProviderResources': this._modifyTemplate.bind(this),
       };
