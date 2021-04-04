@@ -50,7 +50,6 @@ module.exports = Class.extend({
                ],
             },
          },
-         required: [ 'lambdaAtEdge' ],
       });
 
       this.hooks = {
