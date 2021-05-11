@@ -31,7 +31,7 @@
     "@commitlint/cli": "8.3.5",
     "@commitlint/travis-cli": "8.3.5",
     "@silvermine/eslint-config": "3.0.1",
-    "@silvermine/standardization": "1.0.0",
+    "@silvermine/standardization": "1.0.3",
     "check-node-version": "4.0.3",
     "coveralls": "3.0.2",
     "expect.js": "0.3.1",
