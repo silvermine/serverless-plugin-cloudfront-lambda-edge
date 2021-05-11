@@ -4,7 +4,7 @@
   "description": "Plugin for the SLS 1.x branch to provide support for Lambda@Edge (not currently supported by CloudFormation",
   "main": "src/index.js",
   "scripts": {
-    "test": "check-node-version --npm 6.13.4 && ./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- -R spec 'src/tests/**/*.test.js'",
+    "test": "check-node-version --npm 6.14.12 && ./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- -R spec 'src/tests/**/*.test.js'",
     "commitlint": "commitlint --from f506194"
   },
   "author": "Jeremy Thomerson",
