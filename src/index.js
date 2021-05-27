@@ -16,7 +16,20 @@ module.exports = Class.extend({
          throw new Error('This plugin must be used with AWS');
       }
 
-      serverless.configSchemaHandler.defineCustomProperties({
+      this._configureSchema(serverless.configSchemaHandler);
+
+      this.hooks = {
+         'aws:package:finalize:mergeCustomProviderResources': this._modifyTemplate.bind(this),
+      };
+
+   },
+
+   _configureSchema: function(handler) {
+      if (!handler || !_.isFunction(handler.defineCustomProperties) || !_.isFunction(handler.defineFunctionProperties)) {
+         return;
+      }
+
+      handler.defineCustomProperties({
          type: 'object',
          properties: {
             'lambdaAtEdge': {
@@ -38,7 +51,7 @@ module.exports = Class.extend({
          required: [ 'distribution', 'eventType' ],
       };
 
-      serverless.configSchemaHandler.defineFunctionProperties('aws', {
+      handler.defineFunctionProperties('aws', {
          properties: {
             'lambdaAtEdge': {
                oneOf: [
@@ -51,11 +64,6 @@ module.exports = Class.extend({
             },
          },
       });
-
-      this.hooks = {
-         'aws:package:finalize:mergeCustomProviderResources': this._modifyTemplate.bind(this),
-      };
-
    },
 
    _modifyTemplate: function() {
