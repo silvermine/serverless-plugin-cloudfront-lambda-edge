@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "test": "check-node-version --npm 6.14.12 && nyc mocha -- 'src/tests/**/*.test.js'",
-    "commitlint": "commitlint --from f506194"
+    "commitlint": "commitlint --from 4fbfbef"
   },
   "author": "Jeremy Thomerson",
   "license": "MIT",

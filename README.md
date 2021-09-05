@@ -51,9 +51,9 @@ plugins:
    - '@silvermine/serverless-plugin-cloudfront-lambda-edge'
 ```
 
-⚠️ Be careful, **versioning function MUST BE ENABLED**. If you defined `versionFunctions: false`
-in your `serverless.yml` function, the plugin will raise an error during package/deploy 
-saying it could not find output by name.
+⚠️  Be careful, **versioning function MUST BE ENABLED**. If you defined `versionFunctions:
+false` in your `serverless.yml` function, the plugin will raise an error during
+package/deploy saying it could not find output by name.
 
 ### Configuring Functions to Associate With CloudFront Distributions
 
