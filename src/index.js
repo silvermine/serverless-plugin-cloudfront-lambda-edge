@@ -2,6 +2,8 @@
 
 var _ = require('underscore'),
     Class = require('class.extend'),
+    AdmZip = require('adm-zip'),
+    path = require('path'),
     VALID_EVENT_TYPES = [ 'viewer-request', 'origin-request', 'viewer-response', 'origin-response' ];
 
 module.exports = Class.extend({
@@ -20,7 +22,96 @@ module.exports = Class.extend({
 
       this.hooks = {
          'aws:package:finalize:mergeCustomProviderResources': this._modifyTemplate.bind(this),
+         'after:package:createDeploymentArtifacts': this._injectEnvVars.bind(this),
       };
+   },
+
+   _injectEnvVars: function() {
+
+      const targetFunctions = this._getFunctionsToInjectVarsInto(this._serverless.service.functions);
+
+      _.chain(targetFunctions)
+         .pairs()
+         .each(this._modifyFunctionPackageContents.bind(this));
+   },
+
+   _getFunctionsToInjectVarsInto: function(functiondefs) {
+      return _.chain(functiondefs)
+         .pairs()
+         .filter(function([ functionName, functiondef ]) {
+            const lambdaAtEdgeConfig = _.get(functiondef, 'lambdaAtEdge', {});
+
+            let shouldInjectEnvVar = false;
+
+
+            if (_.isArray(lambdaAtEdgeConfig)) {
+               shouldInjectEnvVar = _.some(lambdaAtEdgeConfig, function(lambdaAtEdgeConfigItem) {
+                  return _.get(lambdaAtEdgeConfigItem, 'injectEnv', false);
+               });
+            } else {
+               shouldInjectEnvVar = _.get(lambdaAtEdgeConfig, 'injectEnv', false);
+            }
+
+            if (shouldInjectEnvVar && !_.get(this._serverless, [ 'service', 'provider', 'runtime' ], 'unknown').includes('nodejs')) {
+               this._serverless.cli.log(
+                  'WARNING: failed to inject env vars into lambda@edge function ' + functionName + '. Runtime must be nodejs.'
+               );
+               return false;
+            }
+
+            return shouldInjectEnvVar;
+         }.bind(this))
+         .object()
+         .value();
+   },
+
+   _modifyFunctionPackageContents: function([ functionName, functionDef ]) {
+      const targetPackage = _.get(functionDef, [ 'package', 'artifact' ], false) || this._serverless.service.package.artifact;
+
+      const serviceDir = this._serverless.serviceDir;
+
+      // Make sure the zip path is always prepended with the service directory
+      const zipPath = targetPackage.startsWith(serviceDir) ?
+         targetPackage :
+         path.join(serviceDir, targetPackage);
+
+      // Load zip file from resource path
+      const zip = new AdmZip(zipPath);
+
+      const file = functionDef.handler.split('.')[0] + '.js';
+
+      const fileContents = zip.readAsText(file);
+
+      // Loads environment for file
+      const envVars = this._getEnvForFunc();
+
+      if (_.isEmpty(envVars)) {
+         this._serverless.cli.log('WARNING: No env vars to inject into ' + functionName);
+         return;
+      }
+
+      this._serverless.cli.log('Injecting ' + _.size(envVars) + ' directly into the code for ' + functionName);
+
+      const envData = this._envVarsToWriteableFormat(envVars);
+
+      zip.addFile(file, Buffer.from(envData + fileContents, 'utf8'));
+      zip.writeZip(zipPath);
+   },
+
+   _getEnvForFunc: function() {
+      return this._serverless.service.provider.environment || {};
+   },
+
+   _envVarsToWriteableFormat(vars) {
+      const envVarCode = _.chain(vars)
+         .pairs()
+         .map(function([ varName, varValue ]) {
+            return 'process.env[\'' + varName + '\'] = ' + varValue + ';';
+         })
+         .value()
+         .join('\n') + '\n';
+
+      return 'var process={};\nprocess.env={};\n' + envVarCode;
 
    },
 
@@ -47,6 +138,7 @@ module.exports = Class.extend({
             distribution: { type: 'string' },
             eventType: { enum: VALID_EVENT_TYPES },
             pathPattern: { type: 'string' },
+            injectEnv: { type: 'boolean' },
          },
          required: [ 'distribution', 'eventType' ],
       };
