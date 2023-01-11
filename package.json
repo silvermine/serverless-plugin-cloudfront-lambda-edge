@@ -5,7 +5,10 @@
   "main": "src/index.js",
   "scripts": {
     "test": "check-node-version --npm 8.5.5 && nyc mocha -- 'src/tests/**/*.test.js'",
-    "commitlint": "commitlint --from 4fbfbef"
+    "commitlint": "commitlint --from 4fbfbef",
+    "eslint": "eslint .",
+    "markdownlint": "markdownlint -c .markdownlint.json '{,!(node_modules)/**/}*.md'",
+    "standards": "npm run markdownlint && npm run eslint"
   },
   "author": "Jeremy Thomerson",
   "license": "MIT",
@@ -29,12 +32,10 @@
   },
   "devDependencies": {
     "@silvermine/eslint-config": "3.0.1",
-    "@silvermine/standardization": "1.0.3",
-    "check-node-version": "4.0.3",
+    "@silvermine/standardization": "2.0.0",
     "coveralls": "3.0.2",
+    "eslint": "6.8.0",
     "expect.js": "0.3.1",
-    "grunt": "1.4.0",
-    "grunt-eslint": "22.0.0",
     "mocha": "8.4.0",
     "nyc": "15.1.0",
     "sinon": "3.2.1"
