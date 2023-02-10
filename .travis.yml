@@ -1,17 +1,19 @@
+dist: focal
 language: node_js
 node_js:
    - "node" # Latest node version
    - "lts/*" # Latest LTS version
+   - "16"
    - "14"
    - "12"
 
-before_install: npm i -g npm@6.14.12
+before_install: npm i -g npm@8.5.5
 
 script:
    - node --version
    - npm --version
    - commitlint-travis
-   - grunt standards
+   - npm run standards
    - npm test
 
 # For code coverage:
