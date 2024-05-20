@@ -14,8 +14,8 @@ jobs:
             uses: actions/setup-node@v4
             with:
                node-version-file: '.nvmrc'
-         - run: npm i -g npm@10.5.0
          - run: npm ci
+         - run: npm run check-node-version
          - run: npm run standards
    test:
       needs: [ build ]
@@ -31,7 +31,6 @@ jobs:
             uses: actions/setup-node@v4
             with:
                node-version: ${{ matrix.node-version }}
-         - run: npm i -g npm@10.5.0
          - run: npm ci # Reinstall the dependencies to ensure they install with the current version of node
          - run: npm test
          - name: Coveralls
