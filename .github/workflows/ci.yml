@@ -35,3 +35,14 @@ jobs:
          - run: npm test
          - name: Coveralls
            uses: coverallsapp/github-action@v1
+           with:
+              parallel: true
+              flag-name: ${{ matrix.node-version }}
+   finish:
+     needs: [ test ]
+     runs-on: ubuntu-latest
+     steps:
+        -  name: Close parallel build
+           uses: coverallsapp/github-action@v1
+           with:
+              parallel-finished: true
