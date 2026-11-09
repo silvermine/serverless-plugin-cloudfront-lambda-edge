@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "test": "nyc mocha -- 'src/tests/**/*.test.js'",
-    "check-node-version": "check-node-version --npm 10.5.0",
+    "check-node-version": "check-node-version --npm 11.19.1",
     "commitlint": "commitlint --from 4fbfbef",
     "eslint": "eslint .",
     "markdownlint": "markdownlint -c .markdownlint.json '{,!(node_modules)/**/}*.md'",
